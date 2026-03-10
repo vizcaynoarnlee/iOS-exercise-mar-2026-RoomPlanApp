@@ -4,13 +4,9 @@ iOS application combining Apple's RoomPlan SDK for professional 3D room scanning
 
 ## Demo Video
 
-https://github.com/user-attachments/assets/demo_video.mov
+[![RoomPlan Demo](https://img.youtube.com/vi/3lO8vWND4CQ/maxresdefault.jpg)](https://youtu.be/3lO8vWND4CQ)
 
-<video src="https://github.com/vizcaynoarnlee/iOS-exercise-mar-2026-RoomPlanApp/raw/main/assets/demo_video.mov" width="800" controls></video>
-
-*Demonstrates room scanning, photo capture, 3D viewer, and 360° panorama functionality*
-
-**[📥 Download Full Video](./assets/demo_video.MP4)** (370 MB)
+*Click to watch: Room scanning, photo capture, 3D viewer, and 360° panorama functionality*
 
 ---
 
