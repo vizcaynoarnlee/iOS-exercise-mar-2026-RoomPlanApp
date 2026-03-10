@@ -4,23 +4,49 @@ iOS application combining Apple's RoomPlan SDK for professional 3D room scanning
 
 ## Overview
 
-RoomPlanApp enables users to scan rooms in 3D using LiDAR technology, capture photos during the scanning process, and view the results in an interactive 3D viewer. All data is stored locally with no backend required.
+RoomPlanApp enables users to scan rooms in 3D using LiDAR technology, capture photos during the scanning process, and view the results in an interactive 3D viewer with immersive 360° panorama support. All data is stored locally with no backend required.
 
 **Key Capabilities:**
 - 3D room geometry capture using RoomPlan SDK
 - Real-time spatial photo capture with quaternion-based pose tracking
-- Photo-to-wall mapping in 3D viewer
+- 360° immersive panorama viewer with equirectangular stitching
+- Interactive 3D model viewer with orbit controls
 - USDZ model export
 - Persistent local storage with JSON metadata
 
+**Current Status (March 2026):**
+- ✅ Core scanning and viewing functionality complete
+- ✅ Panorama viewer refactored and optimized (4-file architecture)
+- ✅ Seam softening implemented (no ghosting, soft transitions)
+- 🚧 Unit testing in progress
+- 🚧 Photo-to-wall mapping planned
+- 📊 ~15,000 lines of Swift code with comprehensive documentation
+
 ## Features
+
+### Implemented ✅
 
 - 🏠 **3D Room Scanning** - LiDAR-powered room geometry capture with RoomPlan SDK
 - 📸 **Spatial Photo Capture** - ARKit-based camera pose tracking with quaternion orientation
-- 🎨 **Interactive 3D Viewer** - SceneKit-based viewer with photos mapped to walls
+- 🎨 **Interactive 3D Viewer** - SceneKit-based viewer with orbit controls and photo markers
+- 🌐 **360° Panorama Viewer** - Immersive equirectangular sphere with edge-softened stitching
 - 💾 **Local Persistence** - File-based storage with USDZ models and photo metadata
 - 🔐 **Permission Management** - Camera and ARKit authorization handling
 - 🧪 **Protocol-Based Architecture** - Full dependency injection for testability
+- 🎯 **Refactored Panorama** - Separated into focused modules (Configuration, Stitcher, Controller, View)
+
+### In Progress 🚧
+
+- 🧪 **Unit Testing** - Core services and viewmodels
+- 🖼️ **Photo-to-Wall Mapping** - Display actual photos in 3D viewer (currently shows debug spheres)
+- 📊 **Dashboard Management** - Delete, rename, search scans
+
+### Planned 📅
+
+- 🔄 **Async Panorama Stitching** - Background processing with progress indicator
+- 🎨 **Advanced Stitching** - Multi-band blending for seamless panoramas
+- 📤 **Export & Sharing** - AR Quick Look, OBJ export, photo archives
+- 🌍 **Gyroscope Support** - Device motion for panorama navigation
 
 ## Requirements
 
@@ -76,9 +102,29 @@ RoomPlanApp/
 │   └── Protocols/               # Protocol interfaces for DI
 ├── Modules/                      # Feature modules (Dashboard, RoomCapture, Viewer)
 │   ├── Dashboard/               # Scan list and management
+│   │   ├── DashboardView.swift
+│   │   ├── DashboardViewModel.swift
+│   │   └── Documentation/
 │   ├── RoomCapture/             # Room scanning with RoomPlan SDK
+│   │   ├── RoomCaptureView.swift
+│   │   ├── RoomCaptureViewModel.swift
+│   │   ├── RoomCaptureCoordinator.swift
+│   │   └── Documentation/
 │   └── Viewer/                  # 3D SceneKit viewer
-└── Resources/                    # Assets and resources
+│       ├── RoomViewerView.swift
+│       ├── RoomViewerViewModel.swift
+│       ├── SpatialPanorama/    # 360° panorama viewer (refactored)
+│       │   ├── SpatialPanoramaView.swift
+│       │   ├── PanoramaImageStitcher.swift
+│       │   ├── PanoramaCameraController.swift
+│       │   └── PanoramaConfiguration.swift
+│       ├── Components/          # Reusable 3D components
+│       │   ├── RoomSceneView.swift
+│       │   ├── PhotoNodeBuilder.swift
+│       │   └── OrbitCamera.swift
+│       └── Documentation/
+├── Resources/                    # Assets and resources
+└── Documentation/                # Architecture and implementation guides
 ```
 
 ## Technology Stack
@@ -163,6 +209,203 @@ Documents/
     └── {scan-uuid-2}/
         └── ...
 ```
+
+## Roadmap & Next Steps
+
+### 🔴 High Priority
+
+#### 1. Unit Testing Coverage
+**Status:** ⚠️ Minimal test coverage
+
+**What's needed:**
+- [ ] **PersistenceService tests** - File I/O operations, error handling
+- [ ] **PermissionsManager tests** - Authorization state handling
+- [ ] **ViewModel tests** - Business logic, state management
+- [ ] **Model tests** - Codable conformance, data integrity
+- [ ] **Mock implementations** - For dependency injection testing
+
+**Why it matters:**
+- Prevent regressions during refactoring
+- Validate edge cases (missing files, permission denial)
+- Enable confident code changes
+- Document expected behavior
+
+**Files to test:**
+```
+RoomPlanApp/Services/PersistenceService.swift
+RoomPlanApp/Services/PermissionsManager.swift
+RoomPlanApp/Modules/*/ViewModels/*.swift
+RoomPlanApp/Models/*.swift
+```
+
+#### 2. Panorama Stitching Quality
+**Status:** 🟡 Working but could be better
+
+**Current state:**
+- ✅ No gaps between photos
+- ✅ No double vision/ghosting
+- ✅ Subtle seam softening (4px)
+- ⚠️ Simple overlay stitching (photos drawn on top)
+- ⚠️ Black space at top/bottom (photos don't cover full vertical range)
+
+**Improvements needed:**
+- [ ] **Fill top/bottom black space** - Stretch nearest photos or use gradient fill
+  ```
+  Options:
+  1. Stretch edge photos to cover poles (simple)
+  2. Generate sky/ground gradient (better visual)
+  3. Smart content-aware fill (advanced)
+  4. Cap with solid color matching photo edges
+  ```
+- [ ] **Async stitching** - Move to background thread with progress indicator
+- [ ] **Image caching** - Save generated equirectangular images to disk
+- [ ] **Adaptive sizing** - Calculate photo size based on distribution
+- [ ] **Multi-band blending** - Professional seam elimination (like Photoshop)
+- [ ] **Color correction** - Match brightness/color between adjacent photos
+
+**See:** `RoomPlanApp/Modules/Viewer/Documentation/VIEWER_IMPLEMENTATION.md` - Stitching Quality Improvements section
+
+#### 3. Photo-to-Wall Mapping in 3D Viewer
+**Status:** 🟡 Shows debug spheres, not actual photos
+
+**Current state:**
+- Blue spheres mark photo capture positions
+- Photo orientations stored but not used
+- RoomPlan provides wall surface IDs
+
+**What's needed:**
+- [ ] **Load and display photos** - Create SCNPlane nodes with photo textures
+- [ ] **Orient planes correctly** - Use quaternion orientation from SpatialPose
+- [ ] **Map to nearest wall** - Project onto RoomPlan-detected surfaces
+- [ ] **Scale appropriately** - Size photos based on distance and resolution
+- [ ] **Interactive selection** - Tap photo to view full-screen
+
+**Implementation sketch:**
+```swift
+private func createPhotoPlane(for photo: ScanPhoto) -> SCNNode {
+    let plane = SCNPlane(width: 0.5, height: 0.5)
+    plane.firstMaterial?.diffuse.contents = UIImage(contentsOfFile: photo.imageURL.path)
+
+    let node = SCNNode(geometry: plane)
+    node.position = SCNVector3(photo.cameraPose.position)
+    node.orientation = SCNQuaternion(from: photo.cameraPose.orientation)
+
+    return node
+}
+```
+
+---
+
+### 🟡 Medium Priority
+
+#### 4. Dashboard Enhancements
+**What's missing:**
+- [ ] **Delete scans** - Swipe-to-delete with confirmation
+- [ ] **Edit scan names** - Tap to rename scans
+- [ ] **Search/filter** - Find scans by name or date
+- [ ] **Sort options** - By name, date, photo count
+- [ ] **Scan preview** - Thumbnail of 3D model or first photo
+- [ ] **Storage stats** - Show disk usage per scan
+
+#### 5. Export & Sharing
+**What's missing:**
+- [ ] **AR Quick Look** - Share USDZ for AR preview
+- [ ] **OBJ export** - Convert to OBJ format with textures
+- [ ] **Photo export** - Export all photos as ZIP
+- [ ] **Share button** - System share sheet integration
+- [ ] **AirDrop support** - Direct device-to-device transfer
+
+#### 6. Error Handling & Recovery
+**What's missing:**
+- [ ] **Graceful error messages** - User-friendly error descriptions
+- [ ] **Retry mechanisms** - Auto-retry failed operations
+- [ ] **Corrupted scan detection** - Validate and recover partial data
+- [ ] **Low storage warnings** - Alert before running out of space
+- [ ] **ARKit tracking loss** - Guide user to improve tracking
+
+#### 7. Performance Optimizations
+**What's needed:**
+- [ ] **Lazy loading** - Don't load all scans on dashboard open
+- [ ] **Thumbnail caching** - Generate and cache preview images
+- [ ] **USDZ streaming** - Load 3D models progressively
+- [ ] **Photo compression** - Reduce file sizes while maintaining quality
+- [ ] **Background processing** - Export and save on background queue
+
+---
+
+### 🟢 Low Priority / Nice-to-Have
+
+#### 8. Advanced Camera Features
+- [ ] **Manual photo capture** - Button to take photos during scan
+- [ ] **Photo editing** - Crop, rotate, adjust before saving
+- [ ] **HDR capture** - Better lighting in difficult conditions
+- [ ] **Burst mode** - Capture multiple photos quickly
+
+#### 9. Panorama Viewer Enhancements
+- [ ] **Gyroscope support** - Look around using device motion
+- [ ] **VR mode** - Side-by-side view for VR headsets
+- [ ] **Hotspot navigation** - Jump between photo locations
+- [ ] **Measurement tools** - Measure distances in panorama
+- [ ] **Annotations** - Add notes/markers in 3D space
+
+#### 10. Project Management
+- [ ] **Folders/Collections** - Organize scans into groups
+- [ ] **Tags** - Add custom tags to scans
+- [ ] **Notes** - Add descriptions and metadata
+- [ ] **Multi-select** - Batch operations (delete, export)
+
+#### 11. Cloud Sync (Future)
+- [ ] **iCloud sync** - Sync scans across devices
+- [ ] **Backup/restore** - Cloud backup of scans
+- [ ] **Collaboration** - Share scans with others
+
+---
+
+## Known Issues
+
+### Panorama Viewer
+- ⚠️ **Black space at top/bottom** - Photos don't cover full vertical range (zenith/nadir)
+  - **Cause:** Photos captured at eye level don't include straight up or down views
+  - **Current:** Black areas visible when looking up or down
+  - **Workaround:** Avoid looking straight up/down, or capture more photos at extreme elevations
+  - **Fix planned:** Fill with stretched photos, gradients, or solid color caps
+
+- ⚠️ **Seam visibility** - Slight seams visible in some lighting conditions
+  - **Workaround:** Adjust `seamFeatherPixels` in `PanoramaConfiguration.swift`
+  - **Fix planned:** Multi-band blending implementation
+
+### Room Capture
+- ⚠️ **ARKit tracking loss** - Can occur in low-light or featureless environments
+  - **Workaround:** Ensure good lighting and visible features
+  - **Fix planned:** Add visual tracking quality indicator
+
+### Performance
+- ⚠️ **Panorama stitching blocks UI** - 1-2 second freeze for 32 photos
+  - **Workaround:** Capture fewer photos or wait for completion
+  - **Fix planned:** Async stitching with progress indicator
+
+---
+
+## Contributing
+
+When implementing new features:
+
+1. **Follow existing patterns** - Use MVVM, protocol-based design, dependency injection
+2. **Add documentation** - Update module documentation in `Documentation/` folders
+3. **Write tests** - Add unit tests for new functionality
+4. **Use Swift 6** - Enable strict concurrency, use @MainActor where needed
+5. **Debug logging** - Add `debugPrint()` statements for major operations
+
+**Code review checklist:**
+- [ ] Follows MVVM architecture
+- [ ] Uses protocols for dependencies
+- [ ] Has @MainActor isolation where needed
+- [ ] Includes error handling
+- [ ] Has debug logging
+- [ ] Documentation updated
+- [ ] Tests added (when applicable)
+
+---
 
 ## License
 
