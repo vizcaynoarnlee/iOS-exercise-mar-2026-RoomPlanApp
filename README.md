@@ -16,10 +16,11 @@ RoomPlanApp enables users to scan rooms in 3D using LiDAR technology, capture ph
 
 **Current Status (March 2026):**
 - ✅ Core scanning and viewing functionality complete
+- ✅ Photo-to-wall mapping fully implemented (ray-plane intersection)
 - ✅ Panorama viewer refactored and optimized (4-file architecture)
 - ✅ Seam softening implemented (no ghosting, soft transitions)
 - 🚧 Unit testing in progress
-- 🚧 Photo-to-wall mapping planned
+- 🚧 Panorama top/bottom fill planned
 - 📊 ~15,000 lines of Swift code with comprehensive documentation
 
 ## Features
@@ -38,8 +39,8 @@ RoomPlanApp enables users to scan rooms in 3D using LiDAR technology, capture ph
 ### In Progress 🚧
 
 - 🧪 **Unit Testing** - Core services and viewmodels
-- 🖼️ **Photo-to-Wall Mapping** - Display actual photos in 3D viewer (currently shows debug spheres)
 - 📊 **Dashboard Management** - Delete, rename, search scans
+- 🎨 **Panorama Quality** - Fill top/bottom black space, async stitching
 
 ### Planned 📅
 
@@ -251,11 +252,23 @@ RoomPlanApp/Models/*.swift
 **Improvements needed:**
 - [ ] **Fill top/bottom black space** - Stretch nearest photos or use gradient fill
   ```
-  Options:
-  1. Stretch edge photos to cover poles (simple)
-  2. Generate sky/ground gradient (better visual)
-  3. Smart content-aware fill (advanced)
-  4. Cap with solid color matching photo edges
+  Current state:
+  ┌─────────────────────┐
+  │   BLACK (ceiling)   │ ← No photos point straight up
+  ├─────────────────────┤
+  │                     │
+  │   PHOTOS (-31° to   │ ← Photos cover this range
+  │      +12° elev)     │
+  │                     │
+  ├─────────────────────┤
+  │   BLACK (floor)     │ ← No photos point straight down
+  └─────────────────────┘
+
+  Fill options:
+  1. Stretch nearest photos to cover poles (simple, may distort)
+  2. Generate gradient blend to solid color (smooth fade)
+  3. Smart content-aware fill using photo edges (advanced)
+  4. Cap with dominant color from photo edges (clean)
   ```
 - [ ] **Async stitching** - Move to background thread with progress indicator
 - [ ] **Image caching** - Save generated equirectangular images to disk
@@ -265,34 +278,26 @@ RoomPlanApp/Models/*.swift
 
 **See:** `RoomPlanApp/Modules/Viewer/Documentation/VIEWER_IMPLEMENTATION.md` - Stitching Quality Improvements section
 
-#### 3. Photo-to-Wall Mapping in 3D Viewer
-**Status:** 🟡 Shows debug spheres, not actual photos
+#### 3. Photo Display Enhancements in 3D Viewer
+**Status:** ✅ Photos already mapped to walls, could be enhanced
 
-**Current state:**
-- Blue spheres mark photo capture positions
-- Photo orientations stored but not used
-- RoomPlan provides wall surface IDs
+**Current implementation (WORKING):**
+- ✅ Actual photos displayed as textured planes (not just spheres)
+- ✅ Photos mapped to nearest wall using ray-plane intersection
+- ✅ Oriented correctly to face outward from walls
+- ✅ Positioned with staggered offset to prevent z-fighting
+- ✅ Scaled appropriately (2m tall or 80% of wall height)
+- ✅ Slight transparency (98%) to see wall geometry behind
 
-**What's needed:**
-- [ ] **Load and display photos** - Create SCNPlane nodes with photo textures
-- [ ] **Orient planes correctly** - Use quaternion orientation from SpatialPose
-- [ ] **Map to nearest wall** - Project onto RoomPlan-detected surfaces
-- [ ] **Scale appropriately** - Size photos based on distance and resolution
-- [ ] **Interactive selection** - Tap photo to view full-screen
+**See:** `RoomPlanApp/Modules/Viewer/Utilities/PhotoNodeBuilder.swift`
 
-**Implementation sketch:**
-```swift
-private func createPhotoPlane(for photo: ScanPhoto) -> SCNNode {
-    let plane = SCNPlane(width: 0.5, height: 0.5)
-    plane.firstMaterial?.diffuse.contents = UIImage(contentsOfFile: photo.imageURL.path)
-
-    let node = SCNNode(geometry: plane)
-    node.position = SCNVector3(photo.cameraPose.position)
-    node.orientation = SCNQuaternion(from: photo.cameraPose.orientation)
-
-    return node
-}
-```
+**Potential enhancements:**
+- [ ] **Interactive photo selection** - Tap photo to view full-screen
+- [ ] **Photo filtering** - Toggle photo visibility on/off
+- [ ] **Photo metadata overlay** - Show capture date/time on hover
+- [ ] **Thumbnail preview** - Show smaller thumbnails with option to enlarge
+- [ ] **Photo grouping** - Group photos by wall or by capture session
+- [ ] **Better overlap handling** - Detect and handle overlapping photos more elegantly
 
 ---
 
