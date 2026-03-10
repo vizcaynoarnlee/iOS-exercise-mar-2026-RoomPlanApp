@@ -2,6 +2,18 @@
 
 iOS application combining Apple's RoomPlan SDK for professional 3D room scanning with ARKit-based spatial photo capture. Built with SwiftUI and Swift 6, following MVVM architecture with full dependency injection.
 
+## Demo Video
+
+https://github.com/user-attachments/assets/demo_video.mov
+
+<video src="https://github.com/vizcaynoarnlee/iOS-exercise-mar-2026-RoomPlanApp/raw/main/assets/demo_video.mov" width="800" controls></video>
+
+*Demonstrates room scanning, photo capture, 3D viewer, and 360° panorama functionality*
+
+**[📥 Download Full Video](./assets/demo_video.MP4)** (370 MB)
+
+---
+
 ## Overview
 
 RoomPlanApp enables users to scan rooms in 3D using LiDAR technology, capture photos during the scanning process, and view the results in an interactive 3D viewer with immersive 360° panorama support. All data is stored locally with no backend required.
