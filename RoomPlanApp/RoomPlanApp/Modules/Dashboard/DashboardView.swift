@@ -13,6 +13,8 @@ struct DashboardView: View {
     @State private var selectedScan: RoomScan?
     @State private var showingViewer = false
     @State private var showingScanner = false
+    @State private var showingAssets = false
+    @State private var scanForAssets: RoomScan?
 
     var body: some View {
         NavigationStack {
@@ -56,6 +58,11 @@ struct DashboardView: View {
             .navigationDestination(isPresented: $showingViewer) {
                 if let scan = selectedScan {
                     RoomViewerView(scan: scan)
+                }
+            }
+            .sheet(isPresented: $showingAssets) {
+                if let scan = scanForAssets {
+                    ScanAssetsView(scan: scan)
                 }
             }
         }
@@ -115,24 +122,27 @@ struct DashboardView: View {
     private var scanListView: some View {
         List {
             ForEach(viewModel.scans) { scan in
-                ScanRow(scan: scan)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                    .listRowSeparator(.hidden)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        selectedScan = scan
-                        showingViewer = true
-                    }
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color(.separator).opacity(0.3), lineWidth: 1)
-                    )
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.secondarySystemBackground))
-                            .shadow(color: Color(.label).opacity(0.05), radius: 2, x: 0, y: 1)
-                    )
-                    .padding(.vertical, 4)
+                ScanRow(scan: scan, onShareTapped: {
+                    scanForAssets = scan
+                    showingAssets = true
+                })
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowSeparator(.hidden)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    selectedScan = scan
+                    showingViewer = true
+                }
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color(.separator).opacity(0.3), lineWidth: 1)
+                )
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.secondarySystemBackground))
+                        .shadow(color: Color(.label).opacity(0.05), radius: 2, x: 0, y: 1)
+                )
+                .padding(.vertical, 4)
             }
             .onDelete { indexSet in
                 for index in indexSet {
@@ -149,6 +159,7 @@ struct DashboardView: View {
 
 struct ScanRow: View {
     let scan: RoomScan
+    let onShareTapped: () -> Void
 
     var body: some View {
         HStack(spacing: 16) {
@@ -186,6 +197,19 @@ struct ScanRow: View {
             }
 
             Spacer(minLength: 12)
+
+            // Share button
+            Button(action: {
+                onShareTapped()
+            }) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(.blue)
+                    .frame(width: 36, height: 36)
+                    .background(Color.blue.opacity(0.1))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
 
             // Tap indicator
             Image(systemName: "chevron.right")
@@ -326,7 +350,7 @@ private func makeSampleScans() -> [RoomScan] {
     NavigationStack {
         List {
             ForEach(makeSampleScans()) { scan in
-                ScanRow(scan: scan)
+                ScanRow(scan: scan, onShareTapped: {})
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .listRowSeparator(.hidden)
                     .overlay(
@@ -351,7 +375,7 @@ private func makeSampleScans() -> [RoomScan] {
     NavigationStack {
         List {
             ForEach(makeSampleScans()) { scan in
-                ScanRow(scan: scan)
+                ScanRow(scan: scan, onShareTapped: {})
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     .listRowSeparator(.hidden)
                     .overlay(
