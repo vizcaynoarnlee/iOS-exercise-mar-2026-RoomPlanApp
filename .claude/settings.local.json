@@ -17,7 +17,26 @@
       "Bash(ls:*)",
       "Bash(wc:*)",
       "Bash(tree:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final status)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final status --short)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final ls-files)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final show --name-only HEAD)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final log --oneline)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final diff --name-only --cached)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final status --porcelain)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding\\\\ Exercise\\\\ Git/iOS-exercise-mar-2026-RoomPlanApp-Final branch:*)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final log --oneline feature/opencv)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final show feature/opencv --stat)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final show feature/opencv:RoomPlanApp/RoomPlanApp/OpenCV/CVStitcher.h)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final show feature/opencv:RoomPlanApp/RoomPlanApp/OpenCV/StitchingEngine.hpp)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final show feature/opencv:RoomPlanApp/RoomPlanApp/Modules/Viewer/OpenCVTest/OpenCVImageStitcher.swift)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final show feature/opencv:RoomPlanApp/RoomPlanApp/OpenCV/CVStitcher.mm)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final show feature/opencv:RoomPlanApp/RoomPlanApp/OpenCV/StitchingEngine.cpp)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final show feature/opencv:RoomPlanApp/RoomPlanApp/Modules/Viewer/OpenCVTest/OpenCVConfiguration.swift)",
+      "Bash(git -C /Users/arnleevizcayno/Documents/Coding Exercise Git/iOS-exercise-mar-2026-RoomPlanApp-Final show feature/opencv:RoomPlanApp/RoomPlanApp/Modules/Viewer/OpenCVTest/OpenCVTestView.swift)",
+      "Bash(done)",
+      "Bash(tee:*)"
     ]
   }
 }

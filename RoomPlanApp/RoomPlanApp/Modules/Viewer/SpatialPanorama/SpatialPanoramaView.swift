@@ -11,12 +11,40 @@ import SceneKit
 struct SpatialPanoramaView: View {
     let scan: RoomScan
     @Environment(\.dismiss) private var dismiss
+    @State private var isProcessing = true
+    @State private var processingStatus = "Preparing panorama..."
+    @State private var processingProgress: Float = 0.0
 
     var body: some View {
         ZStack {
             // 360° panorama sphere view
-            PanoramaSphereSceneView(photos: scan.photos)
-                .edgesIgnoringSafeArea(.all)
+            PanoramaSphereSceneView(
+                photos: scan.photos,
+                processingStatus: $processingStatus,
+                processingProgress: $processingProgress,
+                isProcessing: $isProcessing
+            )
+            .edgesIgnoringSafeArea(.all)
+
+            // Processing overlay
+            if isProcessing {
+                VStack(spacing: 20) {
+                    ProgressView(value: processingProgress) {
+                        Text(processingStatus)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                    }
+                    .progressViewStyle(.linear)
+                    .frame(maxWidth: 300)
+
+                    Text("\(Int(processingProgress * 100))%")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(30)
+                .background(.ultraThinMaterial)
+                .cornerRadius(20)
+            }
 
             // Overlay UI
             VStack {
@@ -71,6 +99,9 @@ struct SpatialPanoramaView: View {
 
 struct PanoramaSphereSceneView: UIViewRepresentable {
     let photos: [ScanPhoto]
+    @Binding var processingStatus: String
+    @Binding var processingProgress: Float
+    @Binding var isProcessing: Bool
 
     func makeUIView(context: Context) -> SCNView {
         debugPrint("🌐 [Panorama] Creating 360° panorama sphere...")
@@ -106,29 +137,39 @@ struct PanoramaSphereSceneView: UIViewRepresentable {
         // Create equirectangular panorama by stitching photos
         debugPrint("🌐 [Panorama] Stitching \(photos.count) photos into equirectangular image...")
 
-        guard let equirectangularImage = PanoramaImageStitcher.createEquirectangularImage(from: photos) else {
-            debugPrint("🌐 [Panorama] ❌ Failed to create equirectangular image")
-            return sceneView
+        // Create panorama on background thread with progress updates
+        var equirectangularImage: UIImage?
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            equirectangularImage = PanoramaImageStitcher.createEquirectangularImage(
+                from: photos
+            ) { status, progress in
+                DispatchQueue.main.async {
+                    processingStatus = status
+                    processingProgress = progress
+                }
+            }
+
+            DispatchQueue.main.async {
+                isProcessing = false
+
+                if equirectangularImage == nil {
+                    debugPrint("🌐 [Panorama] ❌ Failed to create equirectangular image")
+                    return
+                }
+
+                debugPrint("🌐 [Panorama] ✅ Equirectangular image created")
+
+                // Update scene with completed image
+                context.coordinator.updateScene(
+                    sceneView: sceneView,
+                    image: equirectangularImage!
+                )
+            }
         }
 
-        debugPrint("🌐 [Panorama] ✅ Equirectangular image created")
+        // Return scene view immediately (will be updated when processing completes)
 
-        // Create sphere geometry with equirectangular texture
-        let sphere = SCNSphere(radius: PanoramaConfiguration.sphereRadius)
-
-        // Apply equirectangular image to sphere
-        let material = SCNMaterial()
-        material.diffuse.contents = equirectangularImage
-        material.lightingModel = .constant  // Unlit
-        material.cullMode = .front  // Show inside surface (camera is inside)
-        material.isDoubleSided = false
-        sphere.materials = [material]
-
-        let sphereNode = SCNNode(geometry: sphere)
-        sphereNode.position = SCNVector3(0, 0, 0)
-        scene.rootNode.addChildNode(sphereNode)
-
-        debugPrint("🌐 [Panorama] ✅ Sphere panorama viewer created")
         return sceneView
     }
 
@@ -144,6 +185,27 @@ struct PanoramaSphereSceneView: UIViewRepresentable {
 
     class Coordinator: NSObject {
         let cameraController = PanoramaCameraController()
+
+        func updateScene(sceneView: SCNView, image: UIImage) {
+            guard let scene = sceneView.scene else { return }
+
+            // Create sphere geometry with equirectangular texture
+            let sphere = SCNSphere(radius: PanoramaConfiguration.sphereRadius)
+
+            // Apply equirectangular image to sphere
+            let material = SCNMaterial()
+            material.diffuse.contents = image
+            material.lightingModel = .constant  // Unlit
+            material.cullMode = .front  // Show inside surface (camera is inside)
+            material.isDoubleSided = false
+            sphere.materials = [material]
+
+            let sphereNode = SCNNode(geometry: sphere)
+            sphereNode.position = SCNVector3(0, 0, 0)
+            scene.rootNode.addChildNode(sphereNode)
+
+            debugPrint("🌐 [Panorama] ✅ Sphere panorama viewer created")
+        }
     }
 }
 

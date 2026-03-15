@@ -1,5 +1,12 @@
 # Viewer Module
 
+> **📝 Note**: For the most current SpatialPanorama implementation details (bundle adjustment, multi-band blending, etc.), see:
+> - **[SPATIAL_PANORAMA_ARCHITECTURE.md](SPATIAL_PANORAMA_ARCHITECTURE.md)** - Current architecture (2026-03-15)
+> - **[BUNDLE_ADJUSTMENT_IMPLEMENTATION.md](BUNDLE_ADJUSTMENT_IMPLEMENTATION.md)** - Bundle adjustment details
+> - **[METAL_PYRAMID_BLENDING.md](METAL_PYRAMID_BLENDING.md)** - GPU blending implementation
+>
+> This document contains general viewer module overview and some legacy panorama documentation.
+
 ## Overview
 
 The Viewer module displays completed room scans in 3D, rendering the USDZ model with photo capture positions marked for reference, and provides an immersive 360° panorama viewer.

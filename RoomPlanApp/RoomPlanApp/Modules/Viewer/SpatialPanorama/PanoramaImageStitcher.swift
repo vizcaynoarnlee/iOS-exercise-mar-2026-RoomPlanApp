@@ -12,12 +12,23 @@ import simd
 /// Responsible for creating equirectangular panorama images from individual photos
 struct PanoramaImageStitcher {
 
+    // MARK: - Properties
+
+    /// Progress callback type: (description, progress 0-1)
+    typealias ProgressCallback = (String, Float) -> Void
+
     // MARK: - Public Interface
 
     /// Create equirectangular panorama image from individual photos
-    /// - Parameter photos: Array of ScanPhoto objects with camera poses
+    /// - Parameters:
+    ///   - photos: Array of ScanPhoto objects with camera poses
+    ///   - progress: Optional progress callback
     /// - Returns: Stitched UIImage in equirectangular format, or nil if failed
-    static func createEquirectangularImage(from photos: [ScanPhoto]) -> UIImage? {
+    static func createEquirectangularImage(
+        from photos: [ScanPhoto],
+        progress: ProgressCallback? = nil
+    ) -> UIImage? {
+        progress?("Preparing panorama...", 0.0)
         let width = PanoramaConfiguration.canvasWidth
         let height = PanoramaConfiguration.canvasHeight
         let size = CGSize(width: width, height: height)
@@ -34,9 +45,95 @@ struct PanoramaImageStitcher {
         context.setFillColor(UIColor.black.cgColor)
         context.fill(CGRect(origin: .zero, size: size))
 
-        // Project each photo onto equirectangular canvas
+        // Phase 1: Detect overlapping photo pairs
+        progress?("Detecting overlaps...", 0.1)
+        let overlaps = OverlapDetector.detectOverlaps(photos)
+
+        // Phase 2: Refine camera poses using bundle adjustment (if enabled)
+        progress?("Refining camera poses...", 0.2)
+        var refinedPhotos = photos
+
+        if PanoramaConfiguration.usePoseRefinement && !overlaps.isEmpty {
+            let aligner = CIFeatureAligner()
+            var allMatches: [SphericalBundleAdjuster.FeatureMatch] = []
+
+            // Collect feature matches from all overlapping pairs
+            progress?("Finding feature matches...", 0.25)
+            for overlap in overlaps {
+                let matches = aligner.findMatches(
+                    photoIndex1: overlap.index1,
+                    photoIndex2: overlap.index2,
+                    photo1: photos[overlap.index1],
+                    photo2: photos[overlap.index2]
+                )
+
+                // Convert to bundle adjustment format
+                for match in matches {
+                    allMatches.append(SphericalBundleAdjuster.FeatureMatch(
+                        photoIndex1: overlap.index1,
+                        photoIndex2: overlap.index2,
+                        point1: match.point1,
+                        point2: match.point2
+                    ))
+                }
+            }
+
+            // Run bundle adjustment
+            if !allMatches.isEmpty {
+                progress?("Optimizing camera orientations...", 0.3)
+                let adjuster = SphericalBundleAdjuster()
+                refinedPhotos = adjuster.refinePoses(photos: photos, matches: allMatches)
+            } else {
+                debugPrint("⚠️ [Stitch] No feature matches found, using original poses")
+            }
+        }
+
+        // Phase 3: Apply gain compensation (if enabled)
+        progress?("Normalizing exposure...", 0.35)
+        var normalizedPhotos = refinedPhotos
+
+        if PanoramaConfiguration.useGainCompensation {
+            let compensator = CIGainCompensator()
+            let gainMaps = compensator.calculateGainMaps(photos: refinedPhotos, overlaps: overlaps)
+
+            normalizedPhotos = photos.enumerated().map { index, photo in
+                var photo = photo
+                if let gain = gainMaps[index], gain != 1.0 {
+                    if let imageData = try? Data(contentsOf: photo.imageURL),
+                       let image = UIImage(data: imageData) {
+                        let adjusted = compensator.applyGain(image, gain: gain)
+
+                        // Save adjusted image temporarily
+                        if let adjustedData = adjusted.jpegData(compressionQuality: 0.95) {
+                            let tempURL = FileManager.default.temporaryDirectory
+                                .appendingPathComponent("gain_\(index).jpg")
+                            try? adjustedData.write(to: tempURL)
+                            photo.imageURL = tempURL
+                        }
+                    }
+                }
+                return photo
+            }
+        }
+
+        // Phase 4: Initialize Metal blender (if enabled)
+        progress?("Preparing blending...", 0.45)
+        var metalBlender: MetalPyramidBlender?
+        if PanoramaConfiguration.useMultiBandBlending {
+            metalBlender = MetalPyramidBlender()
+            if metalBlender == nil {
+                debugPrint("⚠️ [Stitch] Metal blender unavailable, using simple blending")
+            }
+        }
+
+        // Phase 5: Project each photo onto equirectangular canvas
+        progress?("Blending photos...", 0.5)
         var failedPhotos = 0
-        for (index, photo) in photos.enumerated() {
+        for (index, photo) in normalizedPhotos.enumerated() {
+            // Update progress
+            let photoProgress = 0.5 + (0.45 * Float(index) / Float(normalizedPhotos.count))
+            progress?("Blending photo \(index + 1)/\(normalizedPhotos.count)...", photoProgress)
+
             // Load image
             guard let imageData = try? Data(contentsOf: photo.imageURL),
                   let image = UIImage(data: imageData),
@@ -66,7 +163,7 @@ struct PanoramaImageStitcher {
             let x = CGFloat(u) * width - photoWidthOnCanvas / 2
             let y = CGFloat(v) * height - photoHeightOnCanvas / 2
 
-            // Draw photo on canvas with proper orientation
+            // Calculate destination rectangle
             let destRect = CGRect(
                 x: x,
                 y: y,
@@ -74,6 +171,10 @@ struct PanoramaImageStitcher {
                 height: photoHeightOnCanvas
             )
 
+            // Photos are positioned using refined camera poses (bundle adjustment)
+            // No image warping - spherical projection handles alignment
+
+            // Draw photo on canvas with proper orientation
             if PanoramaConfiguration.useSeamSoftening {
                 drawFlippedImageWithSeamSoftening(cgImage, in: destRect, context: context)
             } else {
@@ -87,7 +188,14 @@ struct PanoramaImageStitcher {
             debugPrint("🌐 [Stitch] ⚠️ Failed to load \(failedPhotos)/\(photos.count) photos")
         }
 
-        return UIGraphicsGetImageFromCurrentImageContext()
+        progress?("Finalizing panorama...", 0.95)
+
+        guard let finalImage = UIGraphicsGetImageFromCurrentImageContext() else {
+            return nil
+        }
+
+        progress?("Complete", 1.0)
+        return finalImage
     }
 
     // MARK: - Private Helpers
@@ -98,7 +206,7 @@ struct PanoramaImageStitcher {
     private static func sphericalCoordinates(from orientation: simd_quatf) -> (azimuth: Float, elevation: Float) {
         // Get forward direction vector from quaternion
         // Camera looks along -Z axis in local space
-        let forward = orientation.act(SIMD3<Float>(0, 0, -1))
+        let forward = orientation.act(PanoramaConfiguration.cameraForwardDirection)
 
         // Calculate azimuth (horizontal angle) - rotation around Y axis
         // atan2(x, z) gives angle in XZ plane, range: -π to π
