@@ -17,7 +17,40 @@ struct PanoramaImageStitcher {
     /// Progress callback type: (description, progress 0-1)
     typealias ProgressCallback = (String, Float) -> Void
 
+    /// Cached adaptive void color (to avoid recalculating)
+    private static var cachedVoidColor: (photos: [URL], color: UIColor)?
+
     // MARK: - Public Interface
+
+    /// Get appropriate void fill color (adaptive or static)
+    /// - Parameter photos: Array of ScanPhoto objects
+    /// - Returns: UIColor to use for void fill
+    static func getVoidFillColor(for photos: [ScanPhoto]) -> UIColor {
+        guard PanoramaConfiguration.useAdaptiveVoidColor else {
+            return PanoramaConfiguration.voidFillColor
+        }
+
+        let imageURLs = photos.map { $0.imageURL }
+
+        // Check cache
+        if let cached = cachedVoidColor,
+           cached.photos == imageURLs {
+            return cached.color
+        }
+
+        // Extract dominant color
+        if let dominantColor = DominantColorExtractor.extractDominantColor(
+            from: imageURLs,
+            sampleSize: PanoramaConfiguration.colorSampleCount
+        ) {
+            // Cache for reuse
+            cachedVoidColor = (photos: imageURLs, color: dominantColor)
+            return dominantColor
+        }
+
+        // Fallback
+        return PanoramaConfiguration.voidFillColor
+    }
 
     /// Create equirectangular panorama image from individual photos
     /// - Parameters:
@@ -33,6 +66,12 @@ struct PanoramaImageStitcher {
         let height = PanoramaConfiguration.canvasHeight
         let size = CGSize(width: width, height: height)
 
+        // Determine void fill color (adaptive or static)
+        if PanoramaConfiguration.useAdaptiveVoidColor {
+            progress?("Analyzing colors...", 0.05)
+        }
+        let voidColor = getVoidFillColor(for: photos)
+
         // Create graphics context
         UIGraphicsBeginImageContextWithOptions(size, true, 1.0)
         defer { UIGraphicsEndImageContext() }  // Always cleanup
@@ -41,8 +80,8 @@ struct PanoramaImageStitcher {
             return nil
         }
 
-        // Fill with black background
-        context.setFillColor(UIColor.black.cgColor)
+        // Fill voids with determined background color
+        context.setFillColor(voidColor.cgColor)
         context.fill(CGRect(origin: .zero, size: size))
 
         // Phase 1: Detect overlapping photo pairs

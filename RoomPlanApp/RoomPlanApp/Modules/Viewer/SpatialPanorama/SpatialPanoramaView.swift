@@ -111,7 +111,9 @@ struct PanoramaSphereSceneView: UIViewRepresentable {
         let scene = SCNScene()
         sceneView.scene = scene
         sceneView.autoenablesDefaultLighting = true
-        sceneView.backgroundColor = .black
+
+        // Use adaptive void color if enabled (matches panorama canvas)
+        sceneView.backgroundColor = PanoramaImageStitcher.getVoidFillColor(for: photos)
 
         // Create camera at origin (viewer is inside the sphere)
         let cameraNode = SCNNode()

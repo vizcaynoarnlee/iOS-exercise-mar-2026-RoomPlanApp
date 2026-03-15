@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreGraphics
+import UIKit
 import simd
 
 /// Configuration constants for panorama rendering
@@ -60,6 +61,21 @@ enum PanoramaConfiguration {
 
     /// Canvas height for equirectangular image (2:1 aspect ratio)
     static let canvasHeight: CGFloat = 2048
+
+    /// Enable adaptive void fill color (samples dominant color from images)
+    /// When enabled, automatically detects dominant color from panorama photos
+    /// When disabled, uses static voidFillColor
+    static let useAdaptiveVoidColor: Bool = true
+
+    /// Background color for unfilled areas (voids) in panorama
+    /// Used when useAdaptiveVoidColor is false, or as fallback
+    /// Default: Dark gray (looks neutral, less jarring than pure black)
+    static let voidFillColor: UIColor = UIColor(white: 0.15, alpha: 1.0)
+
+    /// Number of images to sample for dominant color extraction
+    /// Lower = faster, higher = more accurate
+    /// Recommended: 4-8 for good balance
+    static let colorSampleCount: Int = 6
 
     // MARK: - Photo Projection
 
