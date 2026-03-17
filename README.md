@@ -69,6 +69,35 @@ RoomPlanApp enables users to scan rooms in 3D using LiDAR technology, capture ph
 - iOS 18.0+
 - Xcode 16.0+
 - Swift 6
+- Xcode Command Line Tools
+- Metal toolchain (see setup instructions below)
+
+## Setup
+
+### 1. Install Xcode Command Line Tools
+```bash
+xcode-select --install
+```
+
+### 2. Verify Metal Toolchain
+Metal tools may not be installed by default. Check and install if needed:
+
+**Option A: Via Xcode (Recommended)**
+1. Open Xcode
+2. Go to **Xcode > Settings > Platforms** (or **Components** in older versions)
+3. Check if Metal tools/shaders are installed
+4. If not, download and install the required components
+
+**Option B: Verify via Command Line**
+```bash
+# Check if Metal compiler is available
+xcrun -sdk iphoneos metal --version
+
+# If not found, install Command Line Tools
+xcode-select --install
+```
+
+**Note:** The Metal Shading Language compiler is required to build the panorama stitching shaders. If the build fails with Metal-related errors, ensure the Metal toolchain is properly installed.
 
 ## Quick Start
 
@@ -77,6 +106,11 @@ RoomPlanApp enables users to scan rooms in 3D using LiDAR technology, capture ph
 cd RoomPlanApp
 open RoomPlanApp.xcodeproj
 ```
+
+### Build and Run
+1. Select a target device (iPhone/iPad Simulator or physical device)
+2. Press `Cmd+R` to build and run
+3. Grant camera and ARKit permissions when prompted
 
 ### Build from Command Line
 ```bash
@@ -142,6 +176,8 @@ RoomPlanApp/
 - **RoomPlan SDK** - Apple's 3D room scanning framework
 - **ARKit** - Camera pose tracking and spatial data
 - **SceneKit** - 3D rendering and visualization
+- **Metal** - GPU-accelerated multi-band pyramid blending for seamless panorama stitching
+- **CoreImage** - Feature alignment, gain compensation, and image processing
 - **Swift 6** - With strict concurrency checking
 - **@Observable** - Swift observation framework
 - **Codable** - JSON serialization
